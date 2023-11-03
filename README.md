@@ -13,3 +13,7 @@ Install pre-commit hooks:
 ```sh
 poetry run pre-commit install
 ```
+
+Run the server with:
+```sh
+poetry run task server```

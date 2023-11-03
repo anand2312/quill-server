@@ -38,6 +38,11 @@ extend-select = [
     "RUF", # ruff specific
 ]
 
+[tool.taskipy.tasks]
+lint = { cmd = "ruff .", help = "Lints project." }
+format = { cmd = "ruff format .", help = "Runs Ruff autoformatter." }
+server = { cmd = "uvicorn --reload doodle_server.app:app", help = "Runs the backend server." }
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
