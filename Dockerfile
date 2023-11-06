@@ -11,12 +11,6 @@ COPY ./pyproject.toml ./poetry.lock* ./
 
 RUN poetry install --no-root --without dev
 
-RUN mkdir ./prisma/
-
-COPY prisma/schema.prisma  ./prisma/
-
-RUN poetry run prisma generate
-
 COPY . .
 
 ENTRYPOINT ["./scripts/entrypoint.sh"]
