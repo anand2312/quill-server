@@ -16,4 +16,5 @@ poetry run pre-commit install
 
 Run the server with:
 ```sh
-poetry run task server```
+poetry run task server
+```

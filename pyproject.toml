@@ -14,6 +14,7 @@ passlib = {version = "^1.7.4", extras = ["argon2"]}
 loguru = "^0.7.2"
 prisma = "^0.11.0"
 pydantic-settings = "^2.0.3"
+python-jose = {version = "^3.3.0", extras = ["cryptography"]}
 
 
 [tool.poetry.group.dev.dependencies]

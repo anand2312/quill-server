@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from doodle_server.schema import MessageResponse
+from .schema import MessageResponse
 
 app = FastAPI(title="Doodle")
 

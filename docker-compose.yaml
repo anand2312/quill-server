@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: doodledb
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpw
+      POSTGRES_DB: doodles
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d doodles"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+    - 6379:6379
+    volumes:
+    - redis_data:/var/lib/redis/data
+
+  doodle-backend:
+    container_name: doodle-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://admin:adminpw@postgres:5432/doodles
+    volumes:
+      - .:/backend
+
+volumes:
+  postgres_data:
+  redis_data:
