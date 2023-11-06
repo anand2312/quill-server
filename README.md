@@ -18,3 +18,8 @@ Run the server with:
 ```sh
 poetry run task server
 ```
+
+Alternativaly, run the server along with the required Postgres and Redis containers with Docker:
+```sh
+docker compose up
+```
