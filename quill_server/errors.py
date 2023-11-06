@@ -1,6 +1,6 @@
-class DoodleError(Exception):
+class QuillError(Exception):
     """Base Doodle error"""
 
 
-class AuthError(DoodleError):
+class AuthError(QuillError):
     """Authentication error"""

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from .schema import MessageResponse
 
-app = FastAPI(title="Doodle")
+app = FastAPI(title="Quill")
 
 
 @app.get("/ping")

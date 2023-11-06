@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "doodle-server"
+name = "quill-server"
 version = "0.1.0"
 description = ""
-authors = ["anand2312 <40204976+anand2312@users.noreply.github.com>"]
+authors = ["anand2312 <anand2312@proton.me>"]
 readme = "README.md"
-packages = [{include = "doodle_server"}]
+packages = [{include = "quill_server"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
