@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from .schema import MessageResponse
+from quill_server.schema import MessageResponse
 
 app = FastAPI(title="Quill")
 

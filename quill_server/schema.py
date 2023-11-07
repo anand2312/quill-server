@@ -2,5 +2,10 @@
 from pydantic import BaseModel
 
 
+class UserSignupBody(BaseModel):
+    username: str
+    password: str
+
+
 class MessageResponse(BaseModel):
     message: str
