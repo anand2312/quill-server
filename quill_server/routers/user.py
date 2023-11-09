@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from quill_server.auth import get_current_user, hash_password, set_session, verify_password
+from quill_server.auth import hash_password, set_session, verify_password
 from quill_server.db.connect import get_db
 from quill_server.db.models import User
 from quill_server.schema import MessageResponse, TokenResponse, UserSignupBody
@@ -54,8 +54,3 @@ async def login(
         )
     session = await set_session(user.id)
     return session
-
-
-@router.get("/loggedin")
-async def test_logged_in(user: Annotated[User, Depends(get_current_user)]) -> MessageResponse:
-    return MessageResponse(message=f"Hello {user.username}!")
