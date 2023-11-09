@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     USE_REDIS_SESSIONS: bool = True
     DATABASE_URL: str
+    REDIS_URL: str
 
 
 settings = Settings()  # type: ignore

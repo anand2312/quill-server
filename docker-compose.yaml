@@ -40,6 +40,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://admin:adminpw@postgres:5432/doodles
+      REDIS_URL: redis://redis:6379/
     volumes:
       - .:/backend
 

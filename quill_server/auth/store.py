@@ -83,10 +83,10 @@ class RedisSessionStorage(AbstractSessionStorage):
 
     async def get_session(self, _id: str) -> Session | None:
         data = await self.redis.get(f"session:{_id}")
-        logger.debug(f"{data}")
+        user_id = UUID(bytes=data)
         if data is None:
             return None
-        return Session(**data)
+        return Session(id=_id, user_id=user_id)
 
     async def create_session(self, user_id: UUID) -> Session:
         session = Session(user_id=user_id)

@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 def _get_token() -> str:
     """Make a session token based on a UUID"""
-    return base64.b64decode(uuid4().bytes).decode("utf-8")
+    return base64.b64encode(uuid4().bytes).decode("utf-8")
 
 
 class Session(BaseModel):
