@@ -1,9 +1,20 @@
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+
 from fastapi import FastAPI
 
+from quill_server import cache
 from quill_server.schema import MessageResponse
 from quill_server.routers import user
 
-app = FastAPI(title="Quill")
+
+@asynccontextmanager
+async def lifetime(app: FastAPI) -> AsyncGenerator[None, None]:
+    yield
+    await cache.disconnect()
+
+
+app = FastAPI(title="Quill", lifespan=lifetime)
 
 app.include_router(user.router)
 
