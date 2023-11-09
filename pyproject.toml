@@ -41,7 +41,6 @@ extend-select = [
     "UP", # pyupgrade
     "ANN", # annotations
     "ASYNC",
-    "S", # bandit
     "B", # bugbear
     "A", # flake8-builtins
     "RUF", # ruff specific

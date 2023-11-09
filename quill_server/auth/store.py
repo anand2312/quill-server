@@ -72,8 +72,8 @@ class InMemorySessionStorage(AbstractSessionStorage):
     async def delete_session(self, _id: str) -> None:
         try:
             self._sessions.pop(_id)
-        except KeyError as e:
-            raise SessionDoesNotExistError(f"Session {_id} does not exist.") from e
+        except KeyError:
+            logger.error(f"Session {_id} does not exist, so it cannot be deleted")
 
 
 class RedisSessionStorage(AbstractSessionStorage):
