@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from quill_server import cache
 from quill_server.schema import MessageResponse
@@ -15,6 +16,14 @@ async def lifetime(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Quill", lifespan=lifetime)
+
+origins = ["http://localhost:3000", "https://quill.pages.dev"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(user.router)
 
