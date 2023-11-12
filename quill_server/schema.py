@@ -14,3 +14,8 @@ class MessageResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class SuccessfulLoginResponse(BaseModel):
+    username: str
+    token: TokenResponse

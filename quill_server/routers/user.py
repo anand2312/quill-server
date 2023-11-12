@@ -7,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from quill_server.auth import hash_password, set_session, verify_password
+from quill_server.auth import get_current_user, hash_password, set_session, verify_password
 from quill_server.db.connect import get_db
 from quill_server.db.models import User
-from quill_server.schema import MessageResponse, TokenResponse, UserSignupBody
+from quill_server.schema import MessageResponse, SuccessfulLoginResponse, UserSignupBody
 
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -19,21 +19,23 @@ router = APIRouter(prefix="/user", tags=["user"])
 @router.post("/signup")
 async def signup(
     user: UserSignupBody, session: Annotated[AsyncSession, Depends(get_db)]
-) -> MessageResponse:
+) -> SuccessfulLoginResponse:
     try:
         async with session.begin():
-            session.add(User(username=user.username, password=hash_password(user.password)))
+            db_user = User(username=user.username, password=hash_password(user.password))
+            session.add(db_user)
     except IntegrityError as e:
-        raise HTTPException(status_code=409, detail="Username is already in used") from e
+        raise HTTPException(status_code=409, detail="Username is already in use") from e
     logger.info(f"Created new user {user.username}")
-    return MessageResponse(message="User signed up succesfully")
+    user_session = await set_session(db_user.id)
+    return SuccessfulLoginResponse(username=db_user.username, token=user_session)
 
 
 @router.post("/token")
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> TokenResponse:
+) -> SuccessfulLoginResponse:
     username = form_data.username
     plaintext = form_data.password
     async with db.begin():
@@ -53,4 +55,9 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     session = await set_session(user.id)
-    return session
+    return SuccessfulLoginResponse(username=username, token=session)
+
+
+@router.get("/loggedin")
+async def test_logged_in(user: Annotated[User, Depends(get_current_user)]) -> MessageResponse:
+    return MessageResponse(message=f"Hello {user.username}!")
