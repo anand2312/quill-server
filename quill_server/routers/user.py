@@ -25,7 +25,7 @@ async def signup(
             db_user = User(username=user.username, password=hash_password(user.password))
             session.add(db_user)
     except IntegrityError as e:
-        raise HTTPException(status_code=409, detail="Username is already in used") from e
+        raise HTTPException(status_code=409, detail="Username is already in use") from e
     logger.info(f"Created new user {user.username}")
     user_session = await set_session(db_user.id)
     return SuccessfulLoginResponse(username=db_user.username, token=user_session)
