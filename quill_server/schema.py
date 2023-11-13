@@ -19,3 +19,7 @@ class TokenResponse(BaseModel):
 class SuccessfulLoginResponse(BaseModel):
     username: str
     token: TokenResponse
+
+
+class CreateRoomResponse(BaseModel):
+    room_id: str
