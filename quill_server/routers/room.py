@@ -1,18 +1,17 @@
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, WebSocketException, status
-from fastapi.responses import JSONResponse
 
 from quill_server import cache
-from quill_server.auth import get_current_user
+from quill_server.auth import get_current_user, get_current_user_ws
 from quill_server.db.models import User
 from quill_server.realtime.events import process_message
 from quill_server.realtime.pubsub import Broadcaster
 from quill_server.realtime.room import get_current_room, Room
-from quill_server.schema import MessageResponse
 
 
-router = APIRouter(prefix="/room")
+router = APIRouter(prefix="/room", tags=["room"])
 
 
 @router.post("/")
@@ -22,27 +21,18 @@ async def create_room(user: Annotated[User, Depends(get_current_user)]) -> Room:
     return room
 
 
-@router.get("/{room_id}", response_model=Room, responses={404: {"model": MessageResponse}})
-async def get_room(
-    user: Annotated[User, Depends(get_current_user)],
-    room: Annotated[Room | None, Depends(get_current_room)],
-) -> JSONResponse | Room:
-    if not room:
-        return JSONResponse(content={"message": "Room not found"}, status_code=404)
-    return room
-
-
 @router.websocket("/{room_id}")
 async def room_socket(
     ws: WebSocket,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user_ws)],
     room: Annotated[Room | None, Depends(get_current_room)],
 ) -> None:
     if not room:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
     await ws.accept()
-
+    await room.join(user)  # add the user to list of connected users
     broadcaster = Broadcaster(ws, cache.client, user, room)
+    task = asyncio.create_task(broadcaster.listen())
     await broadcaster.join()
 
     try:
@@ -52,3 +42,4 @@ async def room_socket(
             await broadcaster.emit(event)
     except WebSocketDisconnect:
         await broadcaster.leave()
+        await task

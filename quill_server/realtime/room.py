@@ -53,6 +53,14 @@ class Room(BaseModel):
             status=GameStatus.LOBBY,
         )
 
+    async def join(self, user: User) -> None:
+        data = _db_user_to_game_member(user)
+        logger.info(f"Adding {data.username} to room:{self.room_id}")
+        await typing.cast(
+            typing.Awaitable[int],
+            cache.client.rpush(f"room:{self.room_id}:users", data.model_dump_json()),
+        )
+
     async def to_redis(self) -> None:
         """Writes the room to Redis."""
         # all the dictionaries are being dumped to redis as JSON strings
