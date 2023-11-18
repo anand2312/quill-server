@@ -20,7 +20,3 @@ class SuccessfulLoginResponse(BaseModel):
     username: str
     access_token: str
     token_type: str
-
-
-class CreateRoomResponse(BaseModel):
-    room_id: str
