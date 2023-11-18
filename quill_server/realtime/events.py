@@ -8,7 +8,7 @@ DataT = TypeVar("DataT", bound=BaseModel)
 
 
 class EventType(StrEnum):
-    JOIN = auto()  # sent to the newly joined user
+    CONNECT = auto()  # sent to the newly joined user
     MEMBER_JOIN = auto()  # sent to all connected users when a new user joins
     MEMBER_LEAVE = auto()  # sent to all connected users when a user disconnects from the room
     GAME_STATE_CHANGE = auto()  # sent when the game starts, ends, or when the room owner changes
