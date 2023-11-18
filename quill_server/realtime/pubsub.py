@@ -1,5 +1,6 @@
 import asyncio
 import json
+import typing
 from dataclasses import dataclass
 
 from fastapi import WebSocket
@@ -40,11 +41,16 @@ class Broadcaster:
         await pubsub.subscribe(f"room:{self.room.room_id}")
         while True:
             try:
-                message = await pubsub.get_message(ignore_subscribe_messages=True)
+                message = await typing.cast(
+                    typing.Awaitable[dict[str, typing.Any] | None],
+                    pubsub.get_message(ignore_subscribe_messages=True),
+                )
             except ConnectionError:
                 connect_tries += 1
-                if connect_tries == 20:
-                    logger.warning("Pubsub could not connect to Redis - wtf?")
+                if connect_tries == 50:
+                    logger.warning(
+                        "Pubsub could not connect to Redis after 50 retries. Is redis running?"
+                    )
                     return
                 else:
                     continue
