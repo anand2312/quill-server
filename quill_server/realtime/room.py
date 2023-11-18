@@ -24,6 +24,14 @@ class GameMember(BaseModel):
     username: str
 
 
+class ChatMessage(BaseModel):
+    """Represents a message sent by a Quill player."""
+
+    username: str
+    message: str
+    has_guessed: bool
+
+
 def _db_user_to_game_member(user: User) -> GameMember:
     return GameMember(user_id=str(user.id), username=user.username)
 
