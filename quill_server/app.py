@@ -17,7 +17,7 @@ async def lifetime(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="Quill", lifespan=lifetime)
 
-origins = ["http://localhost:3000", "https://quill.pages.dev"]
+origins = ["http://localhost:3000", "https://quill-teal-omega.vercel.app"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
