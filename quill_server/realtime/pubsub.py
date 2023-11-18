@@ -18,6 +18,15 @@ from quill_server.realtime.events import (
 from quill_server.realtime.room import Room, _db_user_to_game_member
 
 
+# set of scheduled Tasks
+# this is done as the event loop does not keep any strong refs
+# to scheduled tasks, and they may get garbage collected before
+# completion. so we add them to this set (thereby creating strong refs)
+# and not allowing them to be garbage collected.
+# read: https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+_bg_tasks = set()
+
+
 @dataclass
 class Broadcaster:
     ws: WebSocket
@@ -52,9 +61,11 @@ class Broadcaster:
         """Subscribe to the room's channel on Redis, and send the received messages over the websocket."""
         async with self.conn.pubsub() as pubsub:
             await pubsub.subscribe(f"room:{self.room.room_id}")
-            _ = asyncio.create_task(
+            task = asyncio.create_task(
                 self._loop(pubsub), name=f"room:{self.room.room_id}:user:{self.user.id}"
             )
+            _bg_tasks.add(task)
+            task.add_done_callback(_bg_tasks.discard)
 
     async def emit(self, event: Event) -> None:
         """Emit an event to the pubsub channel, to be picked up by all subscribers."""
