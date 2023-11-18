@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from quill_server import cache
 from quill_server.schema import MessageResponse
-from quill_server.routers import user
+from quill_server.routers import user, room
 
 
 @asynccontextmanager
@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(user.router)
+app.include_router(room.router)
 
 
 @app.get("/ping")
