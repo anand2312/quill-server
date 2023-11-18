@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from fastapi import WebSocket
 from loguru import logger
+from redis.exceptions import ConnectionError
 from redis.asyncio import Redis
 from redis.asyncio.client import PubSub
 
@@ -35,32 +36,37 @@ class Broadcaster:
     room: Room
 
     async def _loop(self, pubsub: PubSub) -> None:
+        connect_tries = 0
+        await pubsub.subscribe(f"room:{self.room.room_id}")
         while True:
-            message = await pubsub.get_message(ignore_subscribe_messages=True)
-            if not message:
-                logger.warning(
-                    f"PubSub channel {self.room.room_id} gave a None message - breaking loop."
-                )
-                return
-            event = json.loads(message["data"])
-            event_type = EventType(event["event_type"])
-            # the listener should stop in two cases:
-            # either the game has ended (event["data"]["status"] == "ended")
-            # OR the current user has left the room (event_type = MEMBER_LEAVE and
-            # event["data"]["user_id"] == self.user.id)
-            if (
-                event_type == EventType.GAME_STATE_CHANGE and event["data"]["status"] == "ended"
-            ) or (
-                event_type == EventType.MEMBER_LEAVE
-                and event["data"]["user_id"] == str(self.user.id)
-            ):
-                return
-            await self.ws.send_json(event)
+            try:
+                message = await pubsub.get_message(ignore_subscribe_messages=True)
+            except ConnectionError:
+                connect_tries += 1
+                if connect_tries == 20:
+                    logger.warning("Pubsub could not connect to Redis - wtf?")
+                    return
+                else:
+                    continue
+            if message is not None:
+                event = json.loads(message["data"])
+                event_type = EventType(event["event_type"])
+                # the listener should stop in two cases:
+                # either the game has ended (event["data"]["status"] == "ended")
+                # OR the current user has left the room (event_type = MEMBER_LEAVE and
+                # event["data"]["user_id"] == self.user.id)
+                if (
+                    event_type == EventType.GAME_STATE_CHANGE and event["data"]["status"] == "ended"
+                ) or (
+                    event_type == EventType.MEMBER_LEAVE
+                    and event["data"]["user_id"] == str(self.user.id)
+                ):
+                    return
+                await self.ws.send_json(event)
 
     async def listen(self) -> None:
         """Subscribe to the room's channel on Redis, and send the received messages over the websocket."""
         async with self.conn.pubsub() as pubsub:
-            await pubsub.subscribe(f"room:{self.room.room_id}")
             task = asyncio.create_task(
                 self._loop(pubsub), name=f"room:{self.room.room_id}:user:{self.user.id}"
             )
