@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 
 from quill_server.db.models import User
 from quill_server.realtime.room import GameMember, Room, ChatMessage
+from quill_server.schema import MessageResponse
 
 
 DataT = TypeVar("DataT", bound=BaseModel)
@@ -27,6 +28,7 @@ class EventType(StrEnum):
     DRAWING = auto()  # sent when a user is drawing on the board
     TURN_START = auto()  # sent when a new turn starts
     TURN_END = auto()  # sent when a turn ends
+    ERROR = auto()  # sent to a user if it tries some illegal action
 
 
 class Event(BaseModel, Generic[DataT]):
@@ -41,6 +43,7 @@ MemberJoinEvent = partial(Event[GameMember], event_type=EventType.MEMBER_JOIN)
 MemberLeaveEvent = partial(Event[GameMember], event_type=EventType.MEMBER_LEAVE)
 ChatMessageEvent = partial(Event[ChatMessage], event_type=EventType.MESSAGE)
 CorrectGuessEvent = partial(Event[ChatMessage], event_type=EventType.CORRECT_GUESS)
+GameStateChangeEvent = partial(Event[Room], event_type=EventType.GAME_STATE_CHANGE)
 
 
 async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Redis) -> Event:
@@ -52,6 +55,14 @@ async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Red
         raise ValueError("Malformed message - no event data found")
 
     match EventType(event_type):
+        case EventType.START:
+            if str(user.id) == room.owner.user_id:
+                await room.start()
+                return GameStateChangeEvent(data=room)
+            else:
+                # user is not the room owner
+                data = MessageResponse(message="You do not own this room")
+                return Event[MessageResponse](event_type=EventType.ERROR, data=data)
         case EventType.MESSAGE:
             # check if this user has already correctly guessed the answer
             # or if this message is the correct guess

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, WebSocke
 from quill_server import cache
 from quill_server.auth import get_current_user, get_current_user_ws
 from quill_server.db.models import User
-from quill_server.realtime.events import process_message
+from quill_server.realtime.events import EventType, process_message
 from quill_server.realtime.pubsub import Broadcaster
 from quill_server.realtime.room import get_current_room, Room
 
@@ -39,7 +39,11 @@ async def room_socket(
         while True:
             data = await ws.receive_json()
             event = await process_message(data, room, user, cache.client)
-            await broadcaster.emit(event)
+            # error events need not be emitted to everyone
+            if event.event_type == EventType.ERROR:
+                await broadcaster.send_personal(event)
+            else:
+                await broadcaster.emit(event)
     except WebSocketDisconnect:
         await room.leave(user)  # remove the user from the list of connected users
         await broadcaster.leave()
