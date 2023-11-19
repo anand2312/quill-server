@@ -18,4 +18,5 @@ class TokenResponse(BaseModel):
 
 class SuccessfulLoginResponse(BaseModel):
     username: str
-    token: TokenResponse
+    access_token: str
+    token_type: str

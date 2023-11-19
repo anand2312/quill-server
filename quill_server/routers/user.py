@@ -28,7 +28,7 @@ async def signup(
         raise HTTPException(status_code=409, detail="Username is already in use") from e
     logger.info(f"Created new user {user.username}")
     user_session = await set_session(db_user.id)
-    return SuccessfulLoginResponse(username=db_user.username, token=user_session)
+    return SuccessfulLoginResponse(username=db_user.username, **user_session.model_dump())
 
 
 @router.post("/token")
@@ -55,7 +55,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     session = await set_session(user.id)
-    return SuccessfulLoginResponse(username=username, token=session)
+    return SuccessfulLoginResponse(username=username, **session.model_dump())
 
 
 @router.get("/loggedin")
