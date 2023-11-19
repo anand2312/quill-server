@@ -41,5 +41,6 @@ async def room_socket(
             event = await process_message(data, room, user, cache.client)
             await broadcaster.emit(event)
     except WebSocketDisconnect:
+        await room.leave(user)  # remove the user from the list of connected users
         await broadcaster.leave()
         await task

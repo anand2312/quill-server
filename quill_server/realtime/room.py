@@ -61,6 +61,19 @@ class Room(BaseModel):
             cache.client.rpush(f"room:{self.room_id}:users", data.model_dump_json()),
         )
 
+    async def leave(self, user: User) -> None:
+        data = _db_user_to_game_member(user)
+        logger.info(f"Removing {data.username} from room:{self.room_id}")
+        res = await typing.cast(
+            typing.Awaitable[int],
+            cache.client.lrem(f"room:{self.room_id}:users", 1, data.model_dump_json()),
+        )
+        if res != 1:
+            logger.warning(
+                f"Attempted removing {data.username} from room:{self.room_id} "
+                f"but Redis gave a response != 1 ({res=})"
+            )
+
     async def to_redis(self) -> None:
         """Writes the room to Redis."""
         # all the dictionaries are being dumped to redis as JSON strings
