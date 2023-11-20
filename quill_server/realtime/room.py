@@ -53,8 +53,22 @@ class Room(BaseModel):
             status=GameStatus.LOBBY,
         )
 
+    async def start(self) -> None:
+        """Start the game in this room."""
+        self.status = GameStatus.ONGOING
+        logger.info(f"Setting room:{self.room_id}:status = ONGOING")
+        await cache.client.set(f"room:{self.room_id}:status", str(self.status))
+
+    async def end(self) -> None:
+        """End the game in this room."""
+        self.status = GameStatus.ENDED
+        logger.info(f"Setting room:{self.room_id}:status = ENDED")
+        await cache.client.set(f"room:{self.room_id}:status", str(self.status))
+
     async def join(self, user: User) -> None:
+        """Add a user to this room."""
         data = _db_user_to_game_member(user)
+        self.users.append(data)
         logger.info(f"Adding {data.username} to room:{self.room_id}")
         await typing.cast(
             typing.Awaitable[int],
@@ -62,7 +76,9 @@ class Room(BaseModel):
         )
 
     async def leave(self, user: User) -> None:
+        """Remove a user from this room."""
         data = _db_user_to_game_member(user)
+        self.users.remove(data)
         logger.info(f"Removing {data.username} from room:{self.room_id}")
         res = await typing.cast(
             typing.Awaitable[int],

@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import HTTPException, Header, WebSocketException, status, Depends
+from fastapi import HTTPException, WebSocketException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
 from passlib.hash import argon2
@@ -35,8 +35,14 @@ async def set_session(user_id: UUID, token_type: str = "bearer") -> TokenRespons
     return TokenResponse(access_token=session.id, token_type=token_type)
 
 
-async def get_current_session_ws(authorization: Annotated[str, Header()]) -> Session:
-    bearer, token = authorization.split()
+async def get_current_session_ws(authorization: str) -> Session:
+    try:
+        bearer, token = authorization.split()
+    except ValueError:
+        logger.error(f"Invalid authorization sent - {authorization}")
+        raise WebSocketException(
+            status.WS_1008_POLICY_VIOLATION, "Authorization not sent"
+        ) from None
     session = await sessions.get_session(token)
     if not session:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
@@ -44,8 +50,8 @@ async def get_current_session_ws(authorization: Annotated[str, Header()]) -> Ses
 
 
 async def get_current_user_ws(
-    session: Annotated[Session, Depends(get_current_session_ws)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    session: Session,
+    db: AsyncSession,
 ) -> User:
     stmt = select(User).where(User.id == session.user_id)
     async with db.begin():
