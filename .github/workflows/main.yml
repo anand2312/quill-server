@@ -1,0 +1,25 @@
+name: CI / CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-and-publish.yml
+    with:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build-and-push
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
