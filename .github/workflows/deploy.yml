@@ -1,0 +1,13 @@
+name: Deploy to VPS
+
+on: workflow_call
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Watchtower on VPS
+        env:
+          WATCHTOWER_TOKEN: ${{ secrets.WATCHTOWER_TOKEN }}
+        run: |
+          curl -H "Authorization: Bearer $WATCHTOWER_TOKEN" https://watchtower.lnkshrt.xyz/v1/update
