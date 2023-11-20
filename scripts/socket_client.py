@@ -1,6 +1,7 @@
-from argparse import ArgumentParser
 import asyncio
 import signal
+import json
+from argparse import ArgumentParser
 
 import websockets
 from loguru import logger
@@ -17,8 +18,8 @@ args = parser.parse_args()
 async def ws_connect() -> None:
     async with websockets.connect(
         "ws://" + args.host + f"/room/{args.room}",
-        extra_headers={"Authorization": f"Bearer {args.token}"},
     ) as ws:
+        await ws.send(json.dumps({"Authorization": f"Bearer {args.token}"}))
         loop = asyncio.get_running_loop()
         loop.add_signal_handler(signal.SIGINT, loop.create_task, ws.close())
         async for message in ws:
