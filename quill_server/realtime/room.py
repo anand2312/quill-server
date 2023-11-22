@@ -67,6 +67,15 @@ class Room(BaseModel):
 
     async def join(self, user: User) -> None:
         """Add a user to this room."""
+        # reject connection if the user is already in the room...
+        if any([u.user_id == str(user.id) for u in self.users]):
+            raise ValueError("User is already in this room")
+        # or if the game isn't in the lobby state anymore...
+        elif self.status != GameStatus.LOBBY:
+            raise ValueError("Room is no longer accepting members")
+        # or if the room already has 8 members
+        elif len(self.users) == 8:
+            raise ValueError("Maximum room capacity reached")
         data = _db_user_to_game_member(user)
         self.users.append(data)
         logger.info(f"Adding {data.username} to room:{self.room_id}")
