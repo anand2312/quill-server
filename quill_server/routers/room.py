@@ -1,7 +1,15 @@
 import asyncio
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, WebSocketException, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    WebSocket,
+    WebSocketDisconnect,
+    WebSocketException,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from quill_server import cache
@@ -9,6 +17,7 @@ from quill_server.auth import get_current_session_ws, get_current_user, get_curr
 from quill_server.db.connect import get_db
 from quill_server.db.models import User
 from quill_server.realtime.events import EventType, process_message
+from quill_server.realtime.game_loop import game_loop
 from quill_server.realtime.pubsub import Broadcaster
 from quill_server.realtime.room import get_current_room, Room
 
@@ -17,9 +26,12 @@ router = APIRouter(prefix="/room", tags=["room"])
 
 
 @router.post("/")
-async def create_room(user: Annotated[User, Depends(get_current_user)]) -> Room:
+async def create_room(
+    user: Annotated[User, Depends(get_current_user)], background: BackgroundTasks
+) -> Room:
     room = Room.new(user)
     await room.to_redis()
+    background.add_task(game_loop, cache.client, room.room_id)
     return room
 
 
