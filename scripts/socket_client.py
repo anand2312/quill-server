@@ -16,6 +16,7 @@ args = parser.parse_args()
 
 
 async def ws_connect() -> None:
+    print("ws://" + args.host + f"/room/{args.room}")
     async with websockets.connect(
         "ws://" + args.host + f"/room/{args.room}",
     ) as ws:
