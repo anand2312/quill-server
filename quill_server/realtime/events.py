@@ -9,11 +9,21 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from quill_server.db.models import User
-from quill_server.realtime.room import GameMember, Room, ChatMessage
+from quill_server.realtime.room import GameMember, Room, ChatMessage, _db_user_to_game_member
 from quill_server.schema import MessageResponse
 
 
 DataT = TypeVar("DataT", bound=BaseModel)
+
+
+# the excalidraw element event contains many fields
+# https://github.com/excalidraw/excalidraw/blob/master/src/element/types.ts#L27-L141
+ExcalidrawElement = dict[str, Any]
+
+
+class Drawing(BaseModel):
+    user: GameMember
+    elements: list[ExcalidrawElement]
 
 
 class EventType(StrEnum):
@@ -44,6 +54,7 @@ MemberLeaveEvent = partial(Event[GameMember], event_type=EventType.MEMBER_LEAVE)
 ChatMessageEvent = partial(Event[ChatMessage], event_type=EventType.MESSAGE)
 CorrectGuessEvent = partial(Event[ChatMessage], event_type=EventType.CORRECT_GUESS)
 GameStateChangeEvent = partial(Event[Room], event_type=EventType.GAME_STATE_CHANGE)
+DrawingEvent = partial(Event[Drawing], event_type=EventType.DRAWING)
 
 
 async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Redis) -> Event:
@@ -92,5 +103,10 @@ async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Red
                     username=user.username, message=event_data["message"], has_guessed=has_guessed
                 )
                 return ChatMessageEvent(data=chat_message)
+        case EventType.DRAWING:
+            drawing = Drawing(
+                user=_db_user_to_game_member(user), elements=event_data.get("elements")
+            )
+            return DrawingEvent(data=drawing)
         case _:
             return Event(event_type=event_type, data=event_data)
