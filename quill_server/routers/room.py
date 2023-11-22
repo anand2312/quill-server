@@ -48,7 +48,11 @@ async def room_socket(
         ) from None
     user = await get_current_user_ws(session, db)
 
-    await room.join(user)  # add the user to list of connected users
+    try:
+        await room.join(user)  # add the user to list of connected users
+    except ValueError as e:
+        raise WebSocketException(status.WS_1008_POLICY_VIOLATION, e.args[0]) from None
+
     broadcaster = Broadcaster(ws, cache.client, user, room)
     task = asyncio.create_task(broadcaster.listen())
     await broadcaster.join()
