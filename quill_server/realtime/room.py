@@ -24,6 +24,20 @@ class GameMember(BaseModel):
     username: str
 
 
+class TurnStartData(BaseModel):
+    """Represents the data sent whenever a new turn starts."""
+
+    user: GameMember
+    answer: str
+
+
+class TurnEndData(BaseModel):
+    """Represents the data sent whenever a turn ends."""
+
+    # for now, we don't really need to send anything at turn end
+    turn: int
+
+
 class ChatMessage(BaseModel):
     """Represents a message sent by a Quill player."""
 

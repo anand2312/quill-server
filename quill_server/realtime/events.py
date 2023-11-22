@@ -90,6 +90,11 @@ async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Red
                 return ChatMessageEvent(data=chat_message)
             answer = answer_res.decode()
             if event_data["message"] == answer and not has_guessed:
+                # add this user to the set of users who have guessed correctly
+                await typing.cast(
+                    Awaitable[int], conn.sadd(f"room:{room.room_id}:guessed", str(user.id))
+                )
+                # replace the message content with a success message
                 chat_message = ChatMessage(
                     username=user.username, message="Just guessed the answer!", has_guessed=True
                 )
