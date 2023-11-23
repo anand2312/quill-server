@@ -3,7 +3,6 @@ from typing import Annotated
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     WebSocket,
     WebSocketDisconnect,
@@ -24,14 +23,16 @@ from quill_server.realtime.room import get_current_room, Room
 
 router = APIRouter(prefix="/room", tags=["room"])
 
+_bg_tasks = set()
+
 
 @router.post("/")
-async def create_room(
-    user: Annotated[User, Depends(get_current_user)], background: BackgroundTasks
-) -> Room:
+async def create_room(user: Annotated[User, Depends(get_current_user)]) -> Room:
     room = Room.new(user)
     await room.to_redis()
-    background.add_task(game_loop, cache.client, room.room_id)
+    task = asyncio.create_task(game_loop(cache.client, room.room_id))
+    _bg_tasks.add(task)
+    task.add_done_callback(_bg_tasks.discard)
     return room
 
 
