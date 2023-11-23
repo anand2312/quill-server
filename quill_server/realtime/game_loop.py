@@ -117,20 +117,29 @@ async def rounds_loop(
             answer = word_pool.pop()
             logger.info(f"Game Loop[room={room_id}]: set room:{room_id}:answer={answer}")
             await cache.set(f"room:{room_id}:answer", answer)
+            # step 2: initialize the set of users who have guessed the answer
+            # add the user who is drawing to the set, so that we won't be waiting
+            # for them to correctly guess their own drawing
+            await typing.cast(
+                typing.Awaitable[int], cache.sadd(f"room:{room_id}:guessed", user.user_id)
+            )
             start_data = TurnStartData(user=GameMember.model_validate(user), answer=answer)
             logger.info(
                 f"Game Loop[room={room_id}]: User {user.username}'s turn to draw; answer is {start_data.answer}"
             )
+            # step 3: send the TURN_START event
             start_event = Event[TurnStartData](event_type=EventType.TURN_START, data=start_data)
             await cache.publish(f"room:{room_id}", start_event.model_dump_json())
-            # step 2: wait for 60 seconds, or until every user has guessed the answer (whichever comes first)
+            # step 4: wait for 60 seconds, or until every user has guessed the answer (whichever comes first)
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(
                     poll_until_everyone_guesses(cache, room_id), timeout=sec_per_round
                 )
-            # step 3: publish TURN_END event
+            # step 5: clear the room:{id}:guessed set
+            await cache.delete(f"room:{room_id}:guessed")
+            # step 6: publish TURN_END event
             end_data = TurnEndData(turn=idx)
             end_event = Event[TurnEndData](event_type=EventType.TURN_END, data=end_data)
             await cache.publish(f"room:{room_id}", end_event.model_dump_json())
-            # step 4: sleep for 2 seconds to add some cooldown between rounds
+            # step 7: sleep for 2 seconds to add some cooldown between rounds
             await asyncio.sleep(2)
