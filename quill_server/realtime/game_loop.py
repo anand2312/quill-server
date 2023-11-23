@@ -95,7 +95,7 @@ async def rounds_loop(
     # get the number of members initially
     n_members = await typing.cast(typing.Awaitable[int], cache.llen(f"room:{room_id}:users"))
     # get at least n_members * n_rounds random words
-    word_pool = random.choices(words(), k=n_members * n_rounds)
+    word_pool = [word.strip() for word in random.choices(words(), k=n_members * n_rounds)]
     # room:id:current_draw_user stores the index of the user who has to draw next
     for i in range(n_rounds):
         logger.info(f"Game Loop[room={room_id}]: Round {i + 1} starting")
@@ -103,22 +103,19 @@ async def rounds_loop(
         for idx, user in enumerate(users):
             # step 0: ensure this user is still connected
             is_still_connected = await typing.cast(
-                typing.Awaitable[str], cache.lpos(f"room:{room_id}:users", user.model_dump_json())
+                typing.Awaitable[int | str],
+                cache.lpos(f"room:{room_id}:users", user.model_dump_json()),
             )
-            print(is_still_connected, type(is_still_connected))
-            # assert isinstance(is_still_connected, str)
-            try:
+            if not isinstance(is_still_connected, int):
                 # LPOS should return the index at which the element is found
-                int(is_still_connected)
-            except ValueError:
-                # If the element wasn't found, LPOS returned nil, which would error when we try to
-                # convert it to an int
+                # If the element wasn't found, LPOS returned nil, which is not an int
                 logger.info(
                     f"Game Loop[room={room_id}]: User {user.username} is no longer connected; skipping"
                 )
                 continue
             # step 1: set the answer for this turn
             answer = word_pool.pop()
+            logger.info(f"Game Loop[room={room_id}]: set room:{room_id}:answer={answer}")
             await cache.set(f"room:{room_id}:answer", answer)
             start_data = TurnStartData(user=GameMember.model_validate(user), answer=answer)
             logger.info(
