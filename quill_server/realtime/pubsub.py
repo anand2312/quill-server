@@ -59,13 +59,15 @@ class Broadcaster:
                 event_type = EventType(event["event_type"])
                 # the listener should stop in two cases:
                 # either the game has ended (event["data"]["status"] == "ended")
+                if event_type == EventType.GAME_STATE_CHANGE and event["data"]["status"] == "ended":
+                    # in this case, emit the event and then end the loop
+                    await self.ws.send_json(event)
+                    return
                 # OR the current user has left the room (event_type = MEMBER_LEAVE and
-                # event["data"]["user_id"] == self.user.id)
-                if (
-                    event_type == EventType.GAME_STATE_CHANGE and event["data"]["status"] == "ended"
-                ) or (
-                    event_type == EventType.MEMBER_LEAVE
-                    and event["data"]["user_id"] == str(self.user.id)
+                # event["data"]["user_id"] == self.user.id).
+                # in this case we do not have to emit the event to this user
+                elif event_type == EventType.MEMBER_LEAVE and event["data"]["user_id"] == str(
+                    self.user.id
                 ):
                     return
                 await self.ws.send_json(event)
