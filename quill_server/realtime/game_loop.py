@@ -64,11 +64,12 @@ async def game_loop(cache: Redis, room_id: str) -> None:
                             )
                             return
                         event = GameStateChangeEvent(data=room)
+                        logger.info(f"Game Loop[room={room_id}]: Sent GAME_STATE_CHANGE(end) event")
                         await cache.publish(f"room:{room_id}", event.model_dump_json())
                         return
 
 
-async def _get_users(room: str) -> list[GameMember]:
+async def _get_users(cache: Redis, room: str) -> list[GameMember]:
     users_res = await typing.cast(
         typing.Awaitable[list[bytes]], cache.lrange(f"room:{room}:users", 0, -1)
     )
@@ -98,11 +99,14 @@ async def rounds_loop(
     # room:id:current_draw_user stores the index of the user who has to draw next
     for i in range(n_rounds):
         logger.info(f"Game Loop[room={room_id}]: Round {i + 1} starting")
-        users = await _get_users(room_id)
+        users = await _get_users(cache, room_id)
         for idx, user in enumerate(users):
             # step 0: ensure this user is still connected
-            is_still_connected = cache.lpos(f"room:{room_id}:users", user.model_dump_json())
-            assert isinstance(is_still_connected, str)
+            is_still_connected = await typing.cast(
+                typing.Awaitable[str], cache.lpos(f"room:{room_id}:users", user.model_dump_json())
+            )
+            print(is_still_connected, type(is_still_connected))
+            # assert isinstance(is_still_connected, str)
             try:
                 # LPOS should return the index at which the element is found
                 int(is_still_connected)
@@ -113,8 +117,10 @@ async def rounds_loop(
                     f"Game Loop[room={room_id}]: User {user.username} is no longer connected; skipping"
                 )
                 continue
-            # step 1: publish TURN_START event
-            start_data = TurnStartData(user=GameMember.model_validate(user), answer=word_pool.pop())
+            # step 1: set the answer for this turn
+            answer = word_pool.pop()
+            await cache.set(f"room:{room_id}:answer", answer)
+            start_data = TurnStartData(user=GameMember.model_validate(user), answer=answer)
             logger.info(
                 f"Game Loop[room={room_id}]: User {user.username}'s turn to draw; answer is {start_data.answer}"
             )
