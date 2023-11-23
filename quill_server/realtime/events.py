@@ -89,7 +89,7 @@ async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Red
                 )
                 return ChatMessageEvent(data=chat_message)
             answer = answer_res.decode()
-            if event_data["message"] == answer and not has_guessed:
+            if event_data["message"].lower() == answer and not has_guessed:
                 # add this user to the set of users who have guessed correctly
                 await typing.cast(
                     Awaitable[int], conn.sadd(f"room:{room.room_id}:guessed", str(user.id))
@@ -99,7 +99,7 @@ async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Red
                     username=user.username, message="Just guessed the answer!", has_guessed=True
                 )
                 return CorrectGuessEvent(data=chat_message)
-            elif event_data["message"] == answer:
+            elif event_data["message"].lower() == answer:
                 # a user who has already guessed the answer is trying to leak the answer
                 chat_message = ChatMessage(username=user.username, message="****", has_guessed=True)
                 return ChatMessageEvent(data=chat_message)
