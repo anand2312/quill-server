@@ -79,6 +79,17 @@ class Room(BaseModel):
         logger.info(f"Setting room:{self.room_id}:status = ENDED")
         await cache.client.set(f"room:{self.room_id}:status", str(self.status))
 
+    async def has_member(self, user: User) -> bool:
+        """Check if the given user is connected to this room."""
+        user_string = _db_user_to_game_member(user).model_dump_json()
+        # LPOS returns an integer index if the element was found in the list, and otherwise returns nil
+        # if LPOS returned an int, the member exists in the room
+        pos = await typing.cast(
+            typing.Awaitable[int | str],
+            cache.client.lpos(f"room:{self.room_id}:users", user_string),
+        )
+        return isinstance(pos, int)
+
     async def join(self, user: User) -> None:
         """Add a user to this room."""
         # reject connection if the user is already in the room...

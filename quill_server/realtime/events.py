@@ -7,6 +7,8 @@ import typing
 from loguru import logger
 from pydantic import BaseModel
 from redis.asyncio import Redis
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from quill_server.db.models import User
 from quill_server.realtime.room import GameMember, Room, ChatMessage, _db_user_to_game_member
@@ -28,6 +30,8 @@ class Drawing(BaseModel):
 
 class EventType(StrEnum):
     START = auto()  # sent by the user to the server to trigger a game start
+    KICK = auto()  # sent when a user is being kicked from the room by the owner
+    MUTE = auto()  # sent when a user is being muted by the room owner
     CONNECT = auto()  # sent to the newly joined user
     MEMBER_JOIN = auto()  # sent to all connected users when a new user joins
     MEMBER_LEAVE = auto()  # sent to all connected users when a user disconnects from the room
@@ -57,7 +61,9 @@ GameStateChangeEvent = partial(Event[Room], event_type=EventType.GAME_STATE_CHAN
 DrawingEvent = partial(Event[Drawing], event_type=EventType.DRAWING)
 
 
-async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Redis) -> Event:
+async def process_message(
+    msg: dict[str, Any], room: Room, user: User, conn: Redis, db: AsyncSession
+) -> Event:
     event_type = msg.get("event_type")
     event_data = msg.get("data")
     if not event_type:
@@ -72,6 +78,28 @@ async def process_message(msg: dict[str, Any], room: Room, user: User, conn: Red
                 return GameStateChangeEvent(data=room)
             else:
                 # user is not the room owner
+                data = MessageResponse(message="You do not own this room")
+                return Event[MessageResponse](event_type=EventType.ERROR, data=data)
+        case EventType.KICK:
+            if str(user.id) == room.owner.user_id:
+                async with db.begin():
+                    stmt = select(User).where(User.username == event_data["username"])
+                    db_res = await db.execute(stmt)
+                    kick_user = db_res.scalar_one_or_none()
+                if not kick_user:
+                    # this user did not exist in the database
+                    data = MessageResponse(message=f"User {event_data['username']} does not exist")
+                    return Event[MessageResponse](event_type=EventType.ERROR, data=data)
+
+                if await room.has_member(kick_user):
+                    # the user is there in the room, so remove them
+                    await room.leave(kick_user)
+                    # broadcast a MEMBER_LEAVE event to everyone
+                    return MemberLeaveEvent(data=_db_user_to_game_member(kick_user))
+                else:
+                    data = MessageResponse(message="Specified user not connected to this room")
+                    return Event[MessageResponse](event_type=EventType.ERROR, data=data)
+            else:
                 data = MessageResponse(message="You do not own this room")
                 return Event[MessageResponse](event_type=EventType.ERROR, data=data)
         case EventType.MESSAGE:

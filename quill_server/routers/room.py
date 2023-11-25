@@ -73,7 +73,7 @@ async def room_socket(
     try:
         while True:
             data = await ws.receive_json()
-            event = await process_message(data, room, user, cache.client)
+            event = await process_message(data, room, user, cache.client, db)
             # error events need not be emitted to everyone
             if event.event_type == EventType.ERROR:
                 await broadcaster.send_personal(event)

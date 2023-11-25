@@ -69,6 +69,7 @@ class Broadcaster:
                 elif event_type == EventType.MEMBER_LEAVE and event["data"]["user_id"] == str(
                     self.user.id
                 ):
+                    await self.ws.close()
                     return
                 await self.ws.send_json(event)
 
