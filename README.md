@@ -3,7 +3,8 @@
 Quill is a realtime drawing and guessing game.
 
 Try it out: https://quill-teal-omega.vercel.app \
-Frontend Repo: https://github.com/NoelZak03/quill-frontend
+Frontend Repo: https://github.com/NoelZak03/quill-frontend \
+API documentation: https://quill.anand2312.xyz 
 
 ## Setup
 
